@@ -13,21 +13,9 @@
       padding: 20px;
       min-height: 100vh;
     }
-    .container {
-      max-width: 620px;
-      margin: 0 auto;
-    }
-    h1 {
-      text-align: center;
-      color: #ffcc00;
-      text-shadow: 0 0 10px #ff9900;
-      margin-bottom: 8px;
-    }
-    .subtitle {
-      text-align: center;
-      color: #aaaaff;
-      margin-bottom: 30px;
-    }
+    .container { max-width: 620px; margin: 0 auto; }
+    h1 { text-align: center; color: #ffcc00; text-shadow: 0 0 10px #ff9900; margin-bottom: 8px; }
+    .subtitle { text-align: center; color: #aaaaff; margin-bottom: 30px; }
     form {
       background: rgba(30, 30, 60, 0.85);
       padding: 30px;
@@ -36,12 +24,7 @@
       box-shadow: 0 8px 30px rgba(0,0,0,0.6);
       margin-bottom: 40px;
     }
-    label {
-      display: block;
-      margin: 16px 0 8px;
-      font-weight: 600;
-      color: #ccd;
-    }
+    label { display: block; margin: 16px 0 8px; font-weight: 600; color: #ccd; }
     input, select {
       width: 100%;
       padding: 14px;
@@ -65,16 +48,8 @@
       cursor: pointer;
       transition: all 0.2s;
     }
-    button:hover {
-      transform: scale(1.03);
-      box-shadow: 0 0 15px #ff9900;
-    }
-    #status {
-      text-align: center;
-      margin: 20px 0;
-      font-weight: bold;
-      font-size: 1.1em;
-    }
+    button:hover { transform: scale(1.03); box-shadow: 0 0 15px #ff9900; }
+    #status { text-align: center; margin: 20px 0; font-weight: bold; font-size: 1.1em; }
     .success { color: #44ff88; }
     .error { color: #ff5555; }
 
@@ -167,7 +142,7 @@
     </select>
 
     <label for="memberCode">會員專屬代碼（會員可刷最多20次，非會員限1次）</label>
-    <input type="text" id="memberCode" placeholder="輸入 HACQRVIP520（會員專用，選填）" />
+    <input type="text" id="memberCode" placeholder="輸入你的專屬代碼（會員限定）" />
 
     <button type="submit">參加抽獎！</button>
   </form>
@@ -242,10 +217,9 @@
 
       // 加強防繞過：正規化 ID
       let normalizedId = robloxId.trim().toLowerCase();
-      normalizedId = normalizedId.replace(/[^a-z0-9_]/g, '');  // 只留合法字元
+      normalizedId = normalizedId.replace(/[^a-z0-9_]/g, '');
       const safeKey = normalizedId || 'invalid_' + Date.now();
 
-      // 顯示用：保留使用者原始輸入樣式
       const displayId = robloxId.trim();
 
       const entryRef = entriesRef.child(safeKey);
