@@ -5,9 +5,149 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>hacqr-rivals-skin-case-draw</title>
   <style>
-    /* 樣式保持不變，省略以節省空間，你可以直接從上一個版本複製 */
-    body { /* ... */ }
-    /* ... 其他 CSS ... */
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(to bottom, #0f0f1a, #1a1a2e);
+      color: #e0e0ff;
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 620px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      color: #ffcc00;
+      text-shadow: 0 0 10px #ff9900;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #aaaaff;
+      margin-bottom: 30px;
+    }
+    form {
+      background: rgba(30, 30, 60, 0.85);
+      padding: 30px;
+      border-radius: 16px;
+      border: 1px solid #444466;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+      margin-bottom: 40px;
+    }
+    label {
+      display: block;
+      margin: 16px 0 8px;
+      font-weight: 600;
+      color: #ccd;
+    }
+    input, select {
+      width: 100%;
+      padding: 14px;
+      border-radius: 8px;
+      border: 1px solid #555;
+      background: #222244;
+      color: #fff;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 16px;
+      margin-top: 24px;
+      background: linear-gradient(90deg, #ff6600, #ff9933);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    button:hover {
+      transform: scale(1.03);
+      box-shadow: 0 0 15px #ff9900;
+    }
+    #status {
+      text-align: center;
+      margin: 20px 0;
+      font-weight: bold;
+      font-size: 1.1em;
+    }
+    .success { color: #44ff88; }
+    .error { color: #ff5555; }
+
+    /* 主持面板樣式 */
+    #admin {
+      background: rgba(20, 20, 40, 0.95);
+      padding: 25px;
+      border-radius: 16px;
+      border: 1px solid #444;
+      margin-top: 40px;
+    }
+    #entries-list {
+      max-height: 400px;
+      overflow-y: auto;
+      background: #1a1a33;
+      padding: 15px;
+      border-radius: 10px;
+      margin: 20px 0;
+    }
+    .entry {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 15px;
+      border-bottom: 1px solid #333366;
+      font-size: 1em;
+    }
+    .entry:last-child { border-bottom: none; }
+    .delete-btn {
+      background: #cc0000;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      font-size: 16px;
+      line-height: 28px;
+      text-align: center;
+      cursor: pointer;
+    }
+    .delete-btn:hover { background: #ff3333; }
+
+    #winners {
+      margin-top: 30px;
+      padding: 20px;
+      background: rgba(0, 80, 0, 0.4);
+      border-radius: 12px;
+      border: 1px solid #006600;
+    }
+    #winners h3 { color: #88ff88; margin-top: 0; }
+
+    /* 右下角浮動按鈕 */
+    #admin-toggle {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 70px;
+      height: 70px;
+      background: linear-gradient(135deg, #ff6600, #ff9933);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 16px;
+      font-weight: bold;
+      box-shadow: 0 6px 20px rgba(255,102,0,0.5);
+      cursor: pointer;
+      z-index: 9999;
+      transition: all 0.3s;
+    }
+    #admin-toggle:hover {
+      transform: scale(1.1);
+      box-shadow: 0 10px 30px rgba(255,102,0,0.7);
+    }
   </style>
 </head>
 <body>
@@ -37,8 +177,8 @@
 <!-- 右下角主持按鈕 -->
 <button id="admin-toggle">主持</button>
 
-<!-- 主持面板 -->
-<div id="admin" class="container">
+<!-- 主持面板（預設隱藏） -->
+<div id="admin" class="container" style="display:none !important;">
   <h2>主持控制面板</h2>
   <p>目前參加人數：<span id="count">0</span> 人</p>
 
@@ -55,7 +195,8 @@
   </div>
 </div>
 
-<script type="module">
+<script>
+  // 你的 firebaseConfig
   const firebaseConfig = {
     apiKey: "AIzaSyBZ5uXvkLx4A1NeJAUWh-60zdBruQMieLs",
     authDomain: "hacqr-rivals-skin-case-draw.firebaseapp.com",
@@ -67,138 +208,144 @@
     measurementId: "G-WMZE6QQLZX"
   };
 
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  // Firebase SDK (使用非模組版，避免 GitHub Pages 相容問題)
+  const script = document.createElement('script');
+  script.src = "https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js";
+  document.head.appendChild(script);
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-  const entriesRef = ref(db, 'entries');
+  const scriptDB = document.createElement('script');
+  scriptDB.src = "https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js";
+  document.head.appendChild(scriptDB);
 
-  const form = document.getElementById('entryForm');
-  const status = document.getElementById('status');
+  // 等 SDK 載入完成再執行初始化
+  scriptDB.onload = function() {
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const entriesRef = db.ref('entries');
 
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    let robloxId = document.getElementById('robloxId').value.trim();
-    const box = document.getElementById('box').value;
+    const form = document.getElementById('entryForm');
+    const status = document.getElementById('status');
 
-    if (!robloxId || !box) {
-      status.textContent = "請填完整 Roblox ID 和選擇箱子！";
-      status.className = "error";
-      return;
-    }
+    // 強制隱藏主持面板
+    document.getElementById('admin').style.display = 'none';
 
-    // 轉成小寫 + 安全 key（避免特殊字元）
-    const safeKey = robloxId.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      let robloxId = document.getElementById('robloxId').value.trim();
+      const box = document.getElementById('box').value;
 
-    // 檢查是否已存在
-    const entryRef = ref(db, 'entries/' + safeKey);
-    onValue(entryRef, (snapshot) => {
-      if (snapshot.exists()) {
-        // 已存在 → 擋掉
-        status.textContent = "你已經參加過了！每個 Roblox ID 只能參加一次～";
+      if (!robloxId || !box) {
+        status.textContent = "請填完整 Roblox ID 和選擇箱子！";
         status.className = "error";
-      } else {
-        // 不存在 → 新增
-        set(entryRef, {
-          robloxId: robloxId,  // 保留原始大小寫
-          box,
-          timestamp: Date.now()
-        })
-        .then(() => {
-          status.textContent = "提交成功！已進入抽獎名單～ 祝你好運！";
-          status.className = "success";
-          form.reset();
-        })
-        .catch(err => {
-          status.textContent = "提交失敗：" + err.message;
-          status.className = "error";
-          console.error(err);
-        });
+        return;
       }
-    }, { onlyOnce: true });  // 只查一次，不持續監聽
-  });
 
-  // 主持按鈕、面板、刪除、抽獎邏輯保持不變（從上一個版本複製過來）
-  document.getElementById('admin-toggle').addEventListener('click', () => {
-    const password = prompt("這是主持面板，請輸入密碼：");
-    if (password === "rivalsdraw2026") {  // ← 記得改成你的密碼
-      document.getElementById('admin').style.display = 'block';
-      document.getElementById('admin-toggle').style.display = 'none';
-    } else {
-      alert("密碼錯誤！");
-    }
-  });
+      const safeKey = robloxId.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+      const entryRef = entriesRef.child(safeKey);
 
-  const countEl = document.getElementById('count');
-  const listEl = document.getElementById('entries-list');
-  const winnersList = document.getElementById('winnersList');
-
-  onValue(entriesRef, (snapshot) => {
-    const data = snapshot.val();
-    let count = 0;
-    let html = "";
-
-    if (data) {
-      count = Object.keys(data).length;
-      Object.keys(data).forEach(key => {
-        const entry = data[key];
-        html += `
-          <div class="entry">
-            <span>${entry.robloxId} → Skin Case ${entry.box}</span>
-            <button class="delete-btn" data-key="${key}">×</button>
-          </div>
-        `;
-      });
-    }
-    countEl.textContent = count;
-    listEl.innerHTML = html || "<p style='color:#888; text-align:center;'>還沒有人參加...</p>";
-
-    document.querySelectorAll('.delete-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const key = btn.dataset.key;
-        if (confirm(`確定要刪除 ${data[key].robloxId} 的參加記錄？`)) {
-          remove(ref(db, 'entries/' + key))
-            .then(() => console.log("已刪除"))
-            .catch(err => alert("刪除失敗：" + err.message));
+      entryRef.once('value').then((snapshot) => {
+        if (snapshot.exists()) {
+          status.textContent = "你已經參加過了！每個 Roblox ID 只能參加一次～";
+          status.className = "error";
+        } else {
+          entryRef.set({
+            robloxId: robloxId,
+            box,
+            timestamp: Date.now()
+          }).then(() => {
+            status.textContent = "提交成功！已進入抽獎名單～ 祝你好運！";
+            status.className = "success";
+            form.reset();
+          }).catch(err => {
+            status.textContent = "提交失敗：" + err.message;
+            status.className = "error";
+          });
         }
       });
     });
-  });
 
-  document.getElementById('drawBtn').addEventListener('click', () => {
-    onValue(entriesRef, (snapshot) => {
+    // 主持按鈕
+    document.getElementById('admin-toggle').addEventListener('click', () => {
+      const password = prompt("這是主持面板，請輸入密碼：");
+      if (password === "rivalsdraw2026") {  // ← 改成你自己的密碼
+        document.getElementById('admin').style.display = 'block';
+        document.getElementById('admin-toggle').style.display = 'none';
+      } else {
+        alert("密碼錯誤！");
+      }
+    });
+
+    // 即時監聽參加者 + 刪除
+    const countEl = document.getElementById('count');
+    const listEl = document.getElementById('entries-list');
+    const winnersList = document.getElementById('winnersList');
+
+    entriesRef.on('value', (snapshot) => {
       const data = snapshot.val();
-      if (!data || Object.keys(data).length === 0) {
-        alert("目前還沒有人參加！");
-        return;
+      let count = 0;
+      let html = "";
+
+      if (data) {
+        count = Object.keys(data).length;
+        Object.keys(data).forEach(key => {
+          const entry = data[key];
+          html += `
+            <div class="entry">
+              <span>${entry.robloxId} → Skin Case ${entry.box}</span>
+              <button class="delete-btn" onclick="deleteEntry('${key}')">×</button>
+            </div>
+          `;
+        });
       }
+      countEl.textContent = count;
+      listEl.innerHTML = html || "<p style='color:#888; text-align:center;'>還沒有人參加...</p>";
+    });
 
-      const entries = Object.values(data);
-      const num = parseInt(document.getElementById('numWinners').value) || 3;
-
-      if (num > entries.length) {
-        alert(`參加人數只有 ${entries.length} 人，無法抽出 ${num} 位！`);
-        return;
+    // 刪除函式（全域）
+    window.deleteEntry = function(key) {
+      if (confirm("確定要刪除這筆參加記錄？")) {
+        entriesRef.child(key).remove()
+          .then(() => console.log("已刪除"))
+          .catch(err => alert("刪除失敗：" + err.message));
       }
+    };
 
-      for (let i = entries.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [entries[i], entries[j]] = [entries[j], entries[i]];
-      }
+    // 抽獎
+    document.getElementById('drawBtn').addEventListener('click', () => {
+      entriesRef.once('value').then((snapshot) => {
+        const data = snapshot.val();
+        if (!data || Object.keys(data).length === 0) {
+          alert("目前還沒有人參加！");
+          return;
+        }
 
-      const winners = entries.slice(0, num);
-      let winHtml = "";
-      winners.forEach(w => {
-        winHtml += `<div style="font-size:1.4em; margin:15px 0; color:#88ff88;">
-          <strong>${w.robloxId}</strong> → Skin Case ${w.box}
-        </div>`;
+        const entries = Object.values(data);
+        const num = parseInt(document.getElementById('numWinners').value) || 3;
+
+        if (num > entries.length) {
+          alert(`參加人數只有 ${entries.length} 人，無法抽出 ${num} 位！`);
+          return;
+        }
+
+        // Fisher-Yates shuffle
+        for (let i = entries.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [entries[i], entries[j]] = [entries[j], entries[i]];
+        }
+
+        const winners = entries.slice(0, num);
+        let winHtml = "";
+        winners.forEach(w => {
+          winHtml += `<div style="font-size:1.4em; margin:15px 0; color:#88ff88;">
+            <strong>${w.robloxId}</strong> → Skin Case ${w.box}
+          </div>`;
+        });
+
+        winnersList.innerHTML = winHtml;
+        alert(`已抽出 ${num} 位中獎者！可以直接螢幕分享公布～`);
       });
-
-      winnersList.innerHTML = winHtml;
-      alert(`已抽出 ${num} 位中獎者！可以直接螢幕分享公布～`);
-    }, { onlyOnce: true });
-  });
+    });
+  };
 </script>
 
 </body>
