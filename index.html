@@ -121,6 +121,20 @@
       transform: scale(1.1);
       box-shadow: 0 10px 30px rgba(255,102,0,0.7);
     }
+
+    #clearAllBtn {
+      background: #cc0000 !important;
+      color: white !important;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 20px auto;
+      display: block;
+      width: auto;
+    }
+    #clearAllBtn:hover { background: #ff3333 !important; }
   </style>
 </head>
 <body>
@@ -160,6 +174,10 @@
   <input type="number" id="numWinners" min="1" max="20" value="3" style="width:100px; padding:10px;" />
 
   <button id="drawBtn">開始抽獎！</button>
+
+  <button id="clearAllBtn">
+    全部清空參加記錄（小心！不可復原）
+  </button>
 
   <div id="entries-list"></div>
 
@@ -215,7 +233,6 @@
         return;
       }
 
-      // 加強防繞過：正規化 ID
       let normalizedId = robloxId.trim().toLowerCase();
       normalizedId = normalizedId.replace(/[^a-z0-9_]/g, '');
       const safeKey = normalizedId || 'invalid_' + Date.now();
@@ -266,6 +283,7 @@
       });
     });
 
+    // 主持面板開啟
     document.getElementById('admin-toggle').addEventListener('click', () => {
       const password = prompt("這是主持面板，請輸入密碼：");
       if (password === "rivalsdraw2026") {
@@ -273,6 +291,19 @@
         document.getElementById('admin-toggle').style.display = 'none';
       } else {
         alert("密碼錯誤！");
+      }
+    });
+
+    // 一鍵清空全部記錄
+    document.getElementById('clearAllBtn').addEventListener('click', () => {
+      if (confirm("真的要刪除所有參加記錄嗎？\n這會清空所有資料，無法復原！\n確定繼續？")) {
+        entriesRef.set(null)
+          .then(() => {
+            alert("已全部清空！現在可以開始新的抽獎～");
+          })
+          .catch(err => {
+            alert("清空失敗：" + err.message);
+          });
       }
     });
 
