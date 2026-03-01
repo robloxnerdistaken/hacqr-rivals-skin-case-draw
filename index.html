@@ -78,7 +78,6 @@
     .success { color: #44ff88; }
     .error { color: #ff5555; }
 
-    /* 主持面板樣式 */
     #admin {
       background: rgba(20, 20, 40, 0.95);
       padding: 25px;
@@ -126,7 +125,6 @@
     }
     #winners h3 { color: #88ff88; margin-top: 0; }
 
-    /* 右下角浮動按鈕 */
     #admin-toggle {
       position: fixed;
       bottom: 30px;
@@ -177,10 +175,8 @@
   <div id="status"></div>
 </div>
 
-<!-- 右下角主持按鈕 -->
 <button id="admin-toggle">主持</button>
 
-<!-- 主持面板（預設隱藏） -->
 <div id="admin" class="container" style="display:none !important;">
   <h2>主持控制面板</h2>
   <p>目前參加人數：<span id="count">0</span> 人</p>
@@ -199,7 +195,6 @@
 </div>
 
 <script>
-  // Firebase 配置
   const firebaseConfig = {
     apiKey: "AIzaSyBZ5uXvkLx4A1NeJAUWh-60zdBruQMieLs",
     authDomain: "hacqr-rivals-skin-case-draw.firebaseapp.com",
@@ -211,7 +206,6 @@
     measurementId: "G-WMZE6QQLZX"
   };
 
-  // 載入 Firebase SDK
   const appScript = document.createElement('script');
   appScript.src = "https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js";
   document.head.appendChild(appScript);
@@ -228,7 +222,6 @@
     const form = document.getElementById('entryForm');
     const status = document.getElementById('status');
 
-    // 會員專屬代碼與上限（已改成 HACQRVIP520）
     const MEMBER_CODE = "HACQRVIP520";
     const MAX_MEMBER_SUBMIT = 20;
 
@@ -236,17 +229,25 @@
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      let robloxId = document.getElementById('robloxId').value.trim();
+
+      let robloxId = document.getElementById('robloxId').value;
       const box = document.getElementById('box').value;
       const codeInput = document.getElementById('memberCode').value.trim();
 
-      if (!robloxId || !box) {
+      if (!robloxId.trim() || !box) {
         status.textContent = "請填完整 Roblox ID 和選擇箱子！";
         status.className = "error";
         return;
       }
 
-      const safeKey = robloxId.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+      // 加強防繞過：正規化 ID
+      let normalizedId = robloxId.trim().toLowerCase();
+      normalizedId = normalizedId.replace(/[^a-z0-9_]/g, '');  // 只留合法字元
+      const safeKey = normalizedId || 'invalid_' + Date.now();
+
+      // 顯示用：保留使用者原始輸入樣式
+      const displayId = robloxId.trim();
+
       const entryRef = entriesRef.child(safeKey);
 
       entryRef.once('value').then((snapshot) => {
@@ -267,7 +268,7 @@
         }
 
         const newData = {
-          robloxId: robloxId,
+          robloxId: displayId,
           box: box,
           timestamp: Date.now(),
           submitCount: currentCount + 1,
@@ -291,10 +292,9 @@
       });
     });
 
-    // 主持面板邏輯
     document.getElementById('admin-toggle').addEventListener('click', () => {
       const password = prompt("這是主持面板，請輸入密碼：");
-      if (password === "rivalsdraw2026") {  // ← 建議改成自己的
+      if (password === "rivalsdraw2026") {
         document.getElementById('admin').style.display = 'block';
         document.getElementById('admin-toggle').style.display = 'none';
       } else {
