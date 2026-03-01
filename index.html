@@ -153,7 +153,7 @@
 <body>
 
 <div class="container">
-  <h1>hacqr RIVALS 皮膚箱抽獎</h1>
+  <h1>Hacqr RIVALS 皮膚箱抽獎</h1>
   <div class="subtitle">輸入 Roblox ID + 選箱子 → 直播現場開獎送皮膚！</div>
 
   <form id="entryForm">
@@ -167,6 +167,9 @@
       <option value="2">Skin Case 2</option>
       <option value="3">Skin Case 3</option>
     </select>
+
+    <label for="memberCode">會員專屬代碼（會員可刷最多20次，非會員限1次）</label>
+    <input type="text" id="memberCode" placeholder="輸入 HACQRVIP520（會員專用，選填）" />
 
     <button type="submit">參加抽獎！</button>
   </form>
@@ -196,7 +199,7 @@
 </div>
 
 <script>
-  // 你的 firebaseConfig
+  // Firebase 配置
   const firebaseConfig = {
     apiKey: "AIzaSyBZ5uXvkLx4A1NeJAUWh-60zdBruQMieLs",
     authDomain: "hacqr-rivals-skin-case-draw.firebaseapp.com",
@@ -208,17 +211,16 @@
     measurementId: "G-WMZE6QQLZX"
   };
 
-  // Firebase SDK (使用非模組版，避免 GitHub Pages 相容問題)
-  const script = document.createElement('script');
-  script.src = "https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js";
-  document.head.appendChild(script);
+  // 載入 Firebase SDK
+  const appScript = document.createElement('script');
+  appScript.src = "https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js";
+  document.head.appendChild(appScript);
 
-  const scriptDB = document.createElement('script');
-  scriptDB.src = "https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js";
-  document.head.appendChild(scriptDB);
+  const dbScript = document.createElement('script');
+  dbScript.src = "https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js";
+  document.head.appendChild(dbScript);
 
-  // 等 SDK 載入完成再執行初始化
-  scriptDB.onload = function() {
+  dbScript.onload = function() {
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const entriesRef = db.ref('entries');
@@ -226,13 +228,17 @@
     const form = document.getElementById('entryForm');
     const status = document.getElementById('status');
 
-    // 強制隱藏主持面板
+    // 會員專屬代碼與上限（已改成 HACQRVIP520）
+    const MEMBER_CODE = "HACQRVIP520";
+    const MAX_MEMBER_SUBMIT = 20;
+
     document.getElementById('admin').style.display = 'none';
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       let robloxId = document.getElementById('robloxId').value.trim();
       const box = document.getElementById('box').value;
+      const codeInput = document.getElementById('memberCode').value.trim();
 
       if (!robloxId || !box) {
         status.textContent = "請填完整 Roblox ID 和選擇箱子！";
@@ -244,30 +250,51 @@
       const entryRef = entriesRef.child(safeKey);
 
       entryRef.once('value').then((snapshot) => {
-        if (snapshot.exists()) {
-          status.textContent = "你已經參加過了！每個 Roblox ID 只能參加一次～";
+        const data = snapshot.val() || { submitCount: 0 };
+        const currentCount = data.submitCount || 0;
+        const isMember = codeInput === MEMBER_CODE;
+
+        if (currentCount >= 1 && !isMember) {
+          status.textContent = "你已經參加過了！（非會員限 1 次）";
           status.className = "error";
-        } else {
-          entryRef.set({
-            robloxId: robloxId,
-            box,
-            timestamp: Date.now()
-          }).then(() => {
-            status.textContent = "提交成功！已進入抽獎名單～ 祝你好運！";
-            status.className = "success";
-            form.reset();
-          }).catch(err => {
-            status.textContent = "提交失敗：" + err.message;
-            status.className = "error";
-          });
+          return;
         }
+
+        if (isMember && currentCount >= MAX_MEMBER_SUBMIT) {
+          status.textContent = `會員已達上限（最多 ${MAX_MEMBER_SUBMIT} 次）！`;
+          status.className = "error";
+          return;
+        }
+
+        const newData = {
+          robloxId: robloxId,
+          box: box,
+          timestamp: Date.now(),
+          submitCount: currentCount + 1,
+          isMember: isMember,
+          lastCode: isMember ? codeInput : null
+        };
+
+        entryRef.set(newData).then(() => {
+          status.textContent = isMember
+            ? `會員專屬！第 ${newData.submitCount} 次提交成功（最多 ${MAX_MEMBER_SUBMIT} 次）～`
+            : "提交成功！祝你好運！";
+          status.className = "success";
+          form.reset();
+        }).catch(err => {
+          status.textContent = "提交失敗：" + err.message;
+          status.className = "error";
+        });
+      }).catch(err => {
+        status.textContent = "檢查失敗：" + err.message;
+        status.className = "error";
       });
     });
 
-    // 主持按鈕
+    // 主持面板邏輯
     document.getElementById('admin-toggle').addEventListener('click', () => {
       const password = prompt("這是主持面板，請輸入密碼：");
-      if (password === "rivalsdraw2026") {  // ← 改成你自己的密碼
+      if (password === "rivalsdraw2026") {  // ← 建議改成自己的
         document.getElementById('admin').style.display = 'block';
         document.getElementById('admin-toggle').style.display = 'none';
       } else {
@@ -275,7 +302,6 @@
       }
     });
 
-    // 即時監聽參加者 + 刪除
     const countEl = document.getElementById('count');
     const listEl = document.getElementById('entries-list');
     const winnersList = document.getElementById('winnersList');
@@ -289,9 +315,10 @@
         count = Object.keys(data).length;
         Object.keys(data).forEach(key => {
           const entry = data[key];
+          const submitInfo = entry.submitCount > 1 ? ` (${entry.submitCount} 次)` : '';
           html += `
             <div class="entry">
-              <span>${entry.robloxId} → Skin Case ${entry.box}</span>
+              <span>${entry.robloxId} → Skin Case ${entry.box}${submitInfo}</span>
               <button class="delete-btn" onclick="deleteEntry('${key}')">×</button>
             </div>
           `;
@@ -301,16 +328,12 @@
       listEl.innerHTML = html || "<p style='color:#888; text-align:center;'>還沒有人參加...</p>";
     });
 
-    // 刪除函式（全域）
     window.deleteEntry = function(key) {
-      if (confirm("確定要刪除這筆參加記錄？")) {
-        entriesRef.child(key).remove()
-          .then(() => console.log("已刪除"))
-          .catch(err => alert("刪除失敗：" + err.message));
+      if (confirm("確定刪除這筆記錄？")) {
+        entriesRef.child(key).remove();
       }
     };
 
-    // 抽獎
     document.getElementById('drawBtn').addEventListener('click', () => {
       entriesRef.once('value').then((snapshot) => {
         const data = snapshot.val();
@@ -327,7 +350,6 @@
           return;
         }
 
-        // Fisher-Yates shuffle
         for (let i = entries.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [entries[i], entries[j]] = [entries[j], entries[i]];
@@ -337,12 +359,12 @@
         let winHtml = "";
         winners.forEach(w => {
           winHtml += `<div style="font-size:1.4em; margin:15px 0; color:#88ff88;">
-            <strong>${w.robloxId}</strong> → Skin Case ${w.box}
+            <strong>${w.robloxId}</strong> → Skin Case ${w.box} (${w.submitCount || 1} 次)
           </div>`;
         });
 
         winnersList.innerHTML = winHtml;
-        alert(`已抽出 ${num} 位中獎者！可以直接螢幕分享公布～`);
+        alert(`已抽出 ${num} 位中獎者！`);
       });
     });
   };
