@@ -75,7 +75,6 @@
     .success { color: #44ff88; }
     .error { color: #ff5555; }
 
-    /* 主持面板搜尋框 */
     #searchInput {
       width: 100%;
       padding: 12px;
@@ -205,7 +204,6 @@
   <h2>主持控制面板</h2>
   <p>目前參加人數：<span id="count">0</span> 人</p>
 
-  <!-- 搜尋框 -->
   <input type="text" id="searchInput" placeholder="搜尋 Roblox ID（支援部分匹配）" />
 
   <label for="numWinners">要抽出幾位贏家？</label>
@@ -253,17 +251,100 @@
     const form = document.getElementById('entryForm');
     const status = document.getElementById('status');
 
-    const MEMBER_CODE = "70ksubmember520";
+    const MEMBER_CODE = "70khacqrmember";
     const MAX_MEMBER_SUBMIT = 20;
 
     document.getElementById('admin').style.display = 'none';
 
-    // 提交邏輯（保持原樣，略過顯示以節省空間）
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
 
-    // 主持面板開啟
+      let robloxId = document.getElementById('robloxId').value;
+      const box = document.getElementById('box').value;
+      const codeInput = document.getElementById('memberCode').value.trim();
+
+      if (!robloxId.trim() || !box) {
+        status.textContent = "請填完整 Roblox ID 和選擇箱子！";
+        status.className = "error";
+        return;
+      }
+
+      let pureId = robloxId.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+
+      if (!pureId) {
+        status.textContent = "Roblox ID 格式無效，請輸入有效名稱或數字ID";
+        status.className = "error";
+        return;
+      }
+
+      const displayId = robloxId.trim();
+
+      const entryRef = entriesRef.child(pureId);
+
+      entryRef.once('value').then((snapshot) => {
+        if (snapshot.exists() && codeInput !== MEMBER_CODE) {
+          status.textContent = "這個 Roblox ID 已經參加過了！（非會員限 1 次）";
+          status.className = "error";
+          return;
+        }
+
+        entriesRef.once('value').then((allSnapshot) => {
+          const allData = allSnapshot.val() || {};
+          let isDuplicate = false;
+
+          for (let key in allData) {
+            if (key.includes(pureId) || pureId.includes(key)) {
+              isDuplicate = true;
+              break;
+            }
+          }
+
+          if (isDuplicate && codeInput !== MEMBER_CODE) {
+            status.textContent = "含有這個用戶名的記錄已存在，無法再次參加！";
+            status.className = "error";
+            return;
+          }
+
+          const data = snapshot.val() || { submitCount: 0 };
+          const currentCount = data.submitCount || 0;
+          const isMember = codeInput === MEMBER_CODE;
+
+          if (isMember && currentCount >= MAX_MEMBER_SUBMIT) {
+            status.textContent = `會員已達上限（最多 ${MAX_MEMBER_SUBMIT} 次）！`;
+            status.className = "error";
+            return;
+          }
+
+          const newData = {
+            robloxId: displayId,
+            box: box,
+            timestamp: Date.now(),
+            submitCount: currentCount + 1,
+            isMember: isMember,
+            lastCode: isMember ? codeInput : null,
+            pureId: pureId
+          };
+
+          entryRef.set(newData).then(() => {
+            status.textContent = isMember
+              ? `會員專屬！第 ${newData.submitCount} 次提交成功～`
+              : "提交成功！祝你好運！";
+            status.className = "success";
+            form.reset();
+          }).catch(err => {
+            status.textContent = "提交失敗：" + err.message;
+            status.className = "error";
+          });
+        });
+      }).catch(err => {
+        status.textContent = "檢查失敗：" + err.message;
+        status.className = "error";
+      });
+    });
+
     document.getElementById('admin-toggle').addEventListener('click', () => {
       const password = prompt("這是主持面板，請輸入密碼：");
-      if (password === "70ksubadmin520") {
+      if (password === "hacqr6666vip") {
         document.getElementById('admin').style.display = 'block';
         document.getElementById('admin-toggle').style.display = 'none';
       } else {
@@ -271,7 +352,6 @@
       }
     });
 
-    // 清空全部
     document.getElementById('clearAllBtn').addEventListener('click', () => {
       if (confirm("真的要刪除所有參加記錄嗎？\n這會清空所有資料，無法復原！\n確定繼續？")) {
         entriesRef.set(null)
@@ -282,7 +362,6 @@
       }
     });
 
-    // 搜尋功能
     document.getElementById('searchInput').addEventListener('input', (e) => {
       const searchTerm = e.target.value.trim().toLowerCase();
       const entries = document.querySelectorAll('.entry');
