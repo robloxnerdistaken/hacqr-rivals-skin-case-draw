@@ -215,7 +215,7 @@
     const form = document.getElementById('entryForm');
     const status = document.getElementById('status');
 
-    const MEMBER_CODE = "HACQRVIP520";
+    const MEMBER_CODE = "70ksubmember520";
     const MAX_MEMBER_SUBMIT = 20;
 
     document.getElementById('admin').style.display = 'none';
@@ -233,49 +233,75 @@
         return;
       }
 
-      let normalizedId = robloxId.trim().toLowerCase();
-      normalizedId = normalizedId.replace(/[^a-z0-9_]/g, '');
-      const safeKey = normalizedId || 'invalid_' + Date.now();
+      let pureId = robloxId.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+
+      if (!pureId) {
+        status.textContent = "Roblox ID 格式無效，請輸入有效名稱或數字ID";
+        status.className = "error";
+        return;
+      }
 
       const displayId = robloxId.trim();
 
-      const entryRef = entriesRef.child(safeKey);
+      // 先檢查 exact pureId 是否存在
+      const entryRef = entriesRef.child(pureId);
 
       entryRef.once('value').then((snapshot) => {
-        const data = snapshot.val() || { submitCount: 0 };
-        const currentCount = data.submitCount || 0;
-        const isMember = codeInput === MEMBER_CODE;
-
-        if (currentCount >= 1 && !isMember) {
-          status.textContent = "你已經參加過了！（非會員限 1 次）";
+        if (snapshot.exists() && codeInput !== MEMBER_CODE) {
+          status.textContent = "這個 Roblox ID 已經參加過了！（非會員限 1 次）";
           status.className = "error";
           return;
         }
 
-        if (isMember && currentCount >= MAX_MEMBER_SUBMIT) {
-          status.textContent = `會員已達上限（最多 ${MAX_MEMBER_SUBMIT} 次）！`;
-          status.className = "error";
-          return;
-        }
+        // 再檢查所有 key 是否有包含關係
+        entriesRef.once('value').then((allSnapshot) => {
+          const allData = allSnapshot.val() || {};
+          let isDuplicate = false;
 
-        const newData = {
-          robloxId: displayId,
-          box: box,
-          timestamp: Date.now(),
-          submitCount: currentCount + 1,
-          isMember: isMember,
-          lastCode: isMember ? codeInput : null
-        };
+          for (let key in allData) {
+            if (key.includes(pureId) || pureId.includes(key)) {
+              isDuplicate = true;
+              break;
+            }
+          }
 
-        entryRef.set(newData).then(() => {
-          status.textContent = isMember
-            ? `會員專屬！第 ${newData.submitCount} 次提交成功（最多 ${MAX_MEMBER_SUBMIT} 次）～`
-            : "提交成功！祝你好運！";
-          status.className = "success";
-          form.reset();
-        }).catch(err => {
-          status.textContent = "提交失敗：" + err.message;
-          status.className = "error";
+          if (isDuplicate && codeInput !== MEMBER_CODE) {
+            status.textContent = "含有這個用戶名的記錄已存在，無法再次參加！";
+            status.className = "error";
+            return;
+          }
+
+          // 會員上限檢查
+          const data = snapshot.val() || { submitCount: 0 };
+          const currentCount = data.submitCount || 0;
+          const isMember = codeInput === MEMBER_CODE;
+
+          if (isMember && currentCount >= MAX_MEMBER_SUBMIT) {
+            status.textContent = `會員已達上限（最多 ${MAX_MEMBER_SUBMIT} 次）！`;
+            status.className = "error";
+            return;
+          }
+
+          const newData = {
+            robloxId: displayId,
+            box: box,
+            timestamp: Date.now(),
+            submitCount: currentCount + 1,
+            isMember: isMember,
+            lastCode: isMember ? codeInput : null,
+            pureId: pureId
+          };
+
+          entryRef.set(newData).then(() => {
+            status.textContent = isMember
+              ? `會員專屬！第 ${newData.submitCount} 次提交成功～`
+              : "提交成功！祝你好運！";
+            status.className = "success";
+            form.reset();
+          }).catch(err => {
+            status.textContent = "提交失敗：" + err.message;
+            status.className = "error";
+          });
         });
       }).catch(err => {
         status.textContent = "檢查失敗：" + err.message;
@@ -283,10 +309,9 @@
       });
     });
 
-    // 主持面板開啟
     document.getElementById('admin-toggle').addEventListener('click', () => {
       const password = prompt("這是主持面板，請輸入密碼：");
-      if (password === "rivalsdraw2026") {
+      if (password === "70ksubadmin520") {
         document.getElementById('admin').style.display = 'block';
         document.getElementById('admin-toggle').style.display = 'none';
       } else {
@@ -294,7 +319,6 @@
       }
     });
 
-    // 一鍵清空全部記錄
     document.getElementById('clearAllBtn').addEventListener('click', () => {
       if (confirm("真的要刪除所有參加記錄嗎？\n這會清空所有資料，無法復原！\n確定繼續？")) {
         entriesRef.set(null)
