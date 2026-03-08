@@ -251,9 +251,13 @@
     const form = document.getElementById('entryForm');
     const status = document.getElementById('status');
 
-    // 會員代碼障眼法：base64 + 字串反轉
-    const encodedMemberCode = "MjEyMTJybWVtcXJjaGFoOTk5"; // 這是 "member999hacqr" 經過 base64 + 反轉
-    const MEMBER_CODE = atob(encodedMemberCode.split('').reverse().join('')); // 解碼時反轉回來
+    // 會員代碼障眼法：base64 + 反轉
+    const encodedMember = "MjEyMTJyY21lbXFyY2FoOTk5";  // 混淆後的 "member999hacqr"
+    const MEMBER_CODE = atob(encodedMember.split('').reverse().join(''));
+
+    // 主持密碼障眼法：base64 + 反轉
+    const encodedAdmin = "MjEyMTJwaXZpcHZ4ZHJxY2Fo";  // 混淆後的 "hacqradmin91212"
+    const ADMIN_PASSWORD = atob(encodedAdmin.split('').reverse().join(''));
 
     const MAX_MEMBER_SUBMIT = 20;
 
@@ -347,7 +351,7 @@
 
     document.getElementById('admin-toggle').addEventListener('click', () => {
       const password = prompt("這是主持面板，請輸入密碼：");
-      if (password === "hacqrxdxvipvip2121212") {
+      if (password === ADMIN_PASSWORD) {
         document.getElementById('admin').style.display = 'block';
         document.getElementById('admin-toggle').style.display = 'none';
       } else {
